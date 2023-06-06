@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Linq.Expressions;
 
 namespace MAPFAnimator
@@ -18,6 +19,7 @@ namespace MAPFAnimator
         public MAPFAnimator()
         {
             InitializeComponent();
+            DoubleBuffered = true;
         }
 
         private void btnLoad_Click(object sender, EventArgs e)
@@ -128,10 +130,14 @@ namespace MAPFAnimator
                         AgentColors.Add(c);
                     }
 
-                    MapImage = DrawMap(true);
-                    picMap.Image = MapImage;
-                    DrawObstacles();
+                    MapImage = new Bitmap(picMap.Width, picMap.Height);
+                    using (Graphics g = Graphics.FromImage(MapImage))
+                    {
+                        DrawMap(g, true);
+                        DrawObstacles(g);
 
+                    }
+                    picMap.Image = MapImage;
 
                     while (sLine.Trim() != "#Plan" && !sr.EndOfStream)
                     {
@@ -260,10 +266,10 @@ namespace MAPFAnimator
         int CellWidth;
         int CellHeight;
 
-        private Bitmap DrawMap(bool bDrawStartPoistions)
+        private void DrawMap(Graphics g, bool bDrawStartPoistions)
         {
             if (Map == null)
-                return null;
+                return;
             picMap.BorderStyle = BorderStyle.FixedSingle;
 
             Rows = Map.Count;
@@ -275,45 +281,43 @@ namespace MAPFAnimator
             else
                 CellHeight = CellWidth;
 
-            Bitmap bmp = new Bitmap(picMap.Width, picMap.Height);
-            using (Graphics g = Graphics.FromImage(bmp))
+
+            for (int col = 0; col < Columns; col++)
             {
-                for (int col = 0; col < Columns; col++)
+                for (int row = 0; row < Rows; row++)
                 {
-                    for (int row = 0; row < Rows; row++)
-                    {
-                        int iType = Map[row][col];
-                        Brush b = null;
-                        b = Brushes.White;
-                        if (iType == 1)
-                            b = Brushes.Black;
-                        if (iType == 2)
-                            b = Brushes.Green;
-                        //if (iType == 3)
-                        //   b = Brushes.Red;
+                    int iType = Map[row][col];
+                    Brush b = null;
+                    b = Brushes.White;
+                    if (iType == 1)
+                        b = Brushes.Black;
+                    if (iType == 2)
+                        b = Brushes.Green;
+                    //if (iType == 3)
+                    //   b = Brushes.Red;
 
-                        DrawAt(g, row, col, b, 0);
-                    }
-                }
-                for (int i = 0; i < AgentColors.Count; i++)
-                {
-                    Point pStart = StartEndLocations[i].Item1;
-                    Point pEnd = StartEndLocations[i].Item2;
-                    Color c = AgentColors[i];
-                    Brush b = new SolidBrush(c);
-                    if (bDrawStartPoistions)
-                        DrawAt(g, pStart.X, pStart.Y, b, 1);
-                    DrawAt(g, pEnd.X, pEnd.Y, b, 2);
-
+                    DrawAt(g, row, col, b, 0);
                 }
             }
-            return bmp;
+            for (int i = 0; i < AgentColors.Count; i++)
+            {
+                Point pStart = StartEndLocations[i].Item1;
+                Point pEnd = StartEndLocations[i].Item2;
+                Color c = AgentColors[i];
+                Brush b = new SolidBrush(c);
+                if (bDrawStartPoistions)
+                    DrawAt(g, pStart.X, pStart.Y, b, 1);
+                DrawAt(g, pEnd.X, pEnd.Y, b, 2);
+
+            }
+
+            
         }
 
-        private void DrawAt(Graphics g, int row, int col, Brush b, int iType)
+        private void DrawAt(Graphics g, float row, float col, Brush b, int iType)
         {
-            int x = col * CellWidth;
-            int y = row * CellHeight;
+            int x = (int)(col * CellWidth);
+            int y = (int)(row * CellHeight);
             if (iType == 0) //cell
                 g.FillRectangle(b, x, y, CellWidth, CellHeight);
             if (iType == 1) //agent
@@ -339,6 +343,11 @@ namespace MAPFAnimator
                     g.FillRectangle(Brushes.Black, x + 3, y + 3, CellWidth - 6, CellHeight - 6);
                 }
             }
+        }
+
+        private void DrawAt(Graphics g, PointF p, Brush b, int iType)
+        {
+            DrawAt(g, p.X, p.Y, b, iType);
         }
 
         private void DrawAt(Graphics g, Point p, Brush b, int iType)
@@ -371,14 +380,18 @@ namespace MAPFAnimator
 
             Step = 0;
             NextObservation = 0;
+            LastStep = DateTime.Now;
 
-            MapImage = DrawMap(true);
-            DrawObstacles();
+            using (Graphics g = Graphics.FromImage(MapImage))
+            {
+                DrawMap(g, false);
+                DrawObstacles(g);
+            }
             CurrentPlan = Plans[0];
             CurrentPlanStep = 0;
             StepTimer = new System.Windows.Forms.Timer();
 
-            StepTimer.Interval = 50;
+            StepTimer.Interval = 30;
             StepTimer.Tick += new EventHandler(ShowStep);
 
             btnStart.Text = "Stop";
@@ -386,31 +399,29 @@ namespace MAPFAnimator
             StepTimer.Start();
         }
 
-        private void DrawPlan(List<List<Point>> lPlan, int iStart)
+        private void DrawPlan(Graphics g, List<List<Point>> lPlan, int iStart)
         {
-            using (Graphics g = Graphics.FromImage(MapImage))
+
+            for (int i = iStart; i < lPlan.Count; i++)
             {
-                for (int i = iStart; i < lPlan.Count; i++)
+                Color c = AgentColors[i];
+                Brush b = new SolidBrush(c);
+                foreach (Point p in lPlan[i])
                 {
-                    Color c = AgentColors[i];
-                    Brush b = new SolidBrush(c);
-                    foreach (Point p in lPlan[i])
-                    {
-                        DrawAt(g, p.X, p.Y, b, 3);
-                    }
+                    DrawAt(g, p.X, p.Y, b, 3);
                 }
             }
+
         }
 
-        private void DrawObstacles()
+        private void DrawObstacles(Graphics g)
         {
-            using (Graphics g = Graphics.FromImage(MapImage))
+
+            foreach (Point p in DoorStatus.Keys)
             {
-                foreach (Point p in DoorStatus.Keys)
-                {
-                    DrawAt(g, p, null, 20 + DoorStatus[p]);
-                }
+                DrawAt(g, p, null, 20 + DoorStatus[p]);
             }
+
         }
 
 
@@ -419,19 +430,38 @@ namespace MAPFAnimator
 
         private void ShowStep(object? sender, EventArgs e)
         {
+
+            DateTime dtNow = DateTime.Now;
+            int interval = (tbSpeed.Maximum - tbSpeed.Value) * 100 + 100;
+
+            double dTimePortion = (dtNow - LastStep).TotalMilliseconds / interval;
+
+            using (Graphics g = Graphics.FromImage(MapImage))
+            {
+                if (dTimePortion >= 1)
+                {
+                    AdvanceStep(g);
+                    dTimePortion = 0;
+                }
+                
+                DrawMovement(g, dTimePortion);
+            }
+
+            picMap.Refresh();
+        }
+
+
+        private void AdvanceStep(Graphics g)
+        {
+
             lblStep.Text = Step + "/" + Steps.Count;
 
-            List<Point> lPositions = Steps[Step];
-            List<Point> lPreviousPositions = null;
-            if (Step > 0)
-                lPreviousPositions = Steps[Step - 1];
 
             while (NextObservation < Observations.Count && Step == Observations[NextObservation].Item1)
             {
                 List<List<Point>> lPlan = Plans[NextObservation + 1];
                 if (lPlan != null)
                 {
-                    MapImage = DrawMap(false);
                     CurrentPlan = lPlan;
                     CurrentPlanStep = 0;
                 }
@@ -448,38 +478,18 @@ namespace MAPFAnimator
                     StepTimer.Stop();
                     btnStart.Text = "Continue";
                 }
+                DrawMap(g, false);
+                DrawPlan(g, CurrentPlan, CurrentPlanStep);
             }
 
-            using (Graphics g = Graphics.FromImage(MapImage))
-            {
-                DrawPlan(CurrentPlan, CurrentPlanStep);
-                if (lPreviousPositions != null)
-                {
-                    foreach (Point p in lPreviousPositions)
-                    {
-                        DrawAt(g, p.X, p.Y, Brushes.White, 0);
-                    }
-                    DrawObstacles();
-                }
-                for (int i = 0; i < lPositions.Count; i++)
-                {
-                    Point p = lPositions[i];
-                    Color c = AgentColors[i];
-                    Brush b = new SolidBrush(c);
-                    DrawAt(g, p.X, p.Y, b, 1);
-                }
-            }
+            DrawObstacles(g);
 
 
-
-            picMap.Image = MapImage;
-            Refresh();
-
-            int interval = (tbSpeed.Maximum - tbSpeed.Value) * 50 + 100;
-            StepTimer.Interval = interval;
 
             Step++;
             CurrentPlanStep++;
+            LastStep = DateTime.Now;
+
             if (Step == Steps.Count)
             {
                 StepTimer.Stop();
@@ -487,10 +497,68 @@ namespace MAPFAnimator
             }
         }
 
+
         private void MAPFAnimator_Load(object sender, EventArgs e)
         {
             FormBorderStyle = FormBorderStyle.FixedSingle;
             MaximizeBox = false;
+        }
+
+        private DateTime LastStep;
+        List<PointF> LastPositions;
+
+        
+
+        private void DrawMovement(Graphics g, double dTimePortion)
+        {
+            if(Step == Steps.Count)
+            {
+                return;
+            }
+            List<Point> lPreviousPositions = Steps[Step];
+            List<Point> lNextPositions = null;
+            if (Step < Steps.Count - 1)
+                lNextPositions = Steps[Step + 1];
+            else
+                lNextPositions = lPreviousPositions;
+            //Debug.WriteLine(Step + ": " + dTimePortion);
+
+                //dTimePortion = 0.5;
+
+                //g.FillRectangle(Brushes.Orange, 0, 0, 1000, 1000);
+
+            if (LastPositions != null)
+            {
+                foreach (PointF p in LastPositions)
+                {
+                    DrawAt(g, p, Brushes.White, 1);
+                }
+            }
+            List<PointF> lPositions = new List<PointF>();
+            for (int i = 0; i < lPreviousPositions.Count; i++)
+            {
+                Point pPrevious = lPreviousPositions[i];
+                Point pNext = lNextPositions[i];
+                double dX = pPrevious.X + (pNext.X - pPrevious.X) * dTimePortion;
+                double dY = pPrevious.Y + (pNext.Y - pPrevious.Y) * dTimePortion;
+                PointF p = new PointF((float)dX, (float)dY);
+
+                //if (i == 0)
+                //    Debug.WriteLine(p + ", " + dTimePortion);
+
+                Color c = AgentColors[i];
+                Brush b = new SolidBrush(c);
+                DrawAt(g, p, b, 1);
+                lPositions.Add(p);
+            }
+            LastPositions = lPositions;
+        }
+        
+
+        private void picMap_Paint(object sender, PaintEventArgs e)
+        {
+
+            
         }
     }
 }

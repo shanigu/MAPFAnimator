@@ -17,6 +17,7 @@
 *.editorconfig
 bin/
 obj/
+.vs/
 
 
 # Packages #

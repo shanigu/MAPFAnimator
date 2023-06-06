@@ -48,6 +48,7 @@
             picMap.Size = new Size(800, 800);
             picMap.TabIndex = 0;
             picMap.TabStop = false;
+            picMap.Paint += picMap_Paint;
             // 
             // btnLoad
             // 

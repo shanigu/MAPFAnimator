@@ -179,7 +179,7 @@ namespace MAPFAnimator
                             string[] a = sLine.Split(' ');
                             Point p = Parse(a.Last());
                             bool bOpen = sLine.ToLower().Contains("open");
-                            Observations.Add(new Tuple<int, Point, bool>(cSteps, p, bOpen));
+                            Observations.Add(new Tuple<int, Point, bool>(cSteps - 2, p, bOpen));
                             if (bOpen)
                             {
                                 Plans.Add(null);
@@ -485,7 +485,7 @@ namespace MAPFAnimator
             c++;
             //if (c == 4)
              //   Console.Write("*");
-            Debug.WriteLine("DrawPlan: " + Step + " , " + iStart);
+            //Debug.WriteLine("DrawPlan: " + Step + " , " + iStart);
 
             for (int i = 0; i < lPlan.Count; i++)
             {
@@ -549,7 +549,7 @@ namespace MAPFAnimator
                 List<List<Point>> lPlan = Plans[NextObservation + 1];
                 if (lPlan != null)
                 {
-                    Debug.WriteLine("Switch plan");
+                    //Debug.WriteLine("Switch plan");
                     CurrentPlan = lPlan;
                     CurrentPlanStep = 2;
                 }
@@ -570,7 +570,7 @@ namespace MAPFAnimator
             DrawMap(g, false);
             DrawPlan(g, CurrentPlan, CurrentPlanStep);
 
-            DrawObstacles(g);
+            //DrawObstacles(g);
 
 
 
@@ -611,9 +611,12 @@ namespace MAPFAnimator
                 lNextPositions = lPreviousPositions;
             //Debug.WriteLine(Step + ": " + dTimePortion);
 
-                //dTimePortion = 0.5;
+            //dTimePortion = 0.5;
 
-                //g.FillRectangle(Brushes.Orange, 0, 0, 1000, 1000);
+            //g.FillRectangle(Brushes.Orange, 0, 0, 1000, 1000);
+
+
+            DrawObstacles(g);
 
             if (LastPositions != null)
             {
@@ -631,8 +634,8 @@ namespace MAPFAnimator
                 double dY = pPrevious.Y + (pNext.Y - pPrevious.Y) * dTimePortion;
                 PointF p = new PointF((float)dX, (float)dY);
 
-                if (i == 2)
-                    Debug.WriteLine(p + ", " + dTimePortion + " , " + Step);
+                //if (i == 2)
+                //    Debug.WriteLine(p + ", " + dTimePortion + " , " + Step);
 
                 Color c = AgentColors[i];
                 Brush b = new SolidBrush(c);

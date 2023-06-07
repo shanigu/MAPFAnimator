@@ -196,6 +196,85 @@ namespace MAPFAnimator
 
         }
 
+        class Line
+        {
+            public int XStart, YStart, XEnd, YEnd;
+            public bool Vertical;
+            public bool Single;
+        }
+
+        private List<Line> ComputeMapLines()
+        {
+            List<Line> lLines = new List<Line>();
+            bool[,] aVerticalPoints = new bool[Map[0].Count, Map.Count];
+            bool[,] aHorizontalPoints = new bool[Map[0].Count, Map.Count];
+
+            for(int y = 0; y < Map.Count; y++)
+            {
+                for(int x = 0; x < Map[0].Count; x++)
+                {
+                    if (Map[y][x] != 0)
+                    {
+                        Line lVertical = null, lHorizontal = null;
+                        bool bInV = aVerticalPoints[x, y];
+                        bool bInH = aHorizontalPoints[x, y];
+                        if (!aVerticalPoints[x,y])
+                        {
+                            int k = 0;
+                            while(y + k < Map.Count - 1 && Map[y + k + 1][x] != 0)
+                            {
+                                aVerticalPoints[x, y + k] = true;
+                                k++;
+                            }
+                            if (k > 0)
+                            {
+                                lVertical = new Line();
+                                lVertical.XStart = x;
+                                lVertical.YStart = y;
+                                lVertical.XEnd = x;
+                                lVertical.YEnd = y + k;
+                                lVertical.Vertical = true;
+                                lLines.Add(lVertical);
+                            }
+                            
+                        }
+                        if (!aHorizontalPoints[x, y])
+                        {
+                            int k = 0;
+                            while (x + k < Map[0].Count - 1 && Map[y][x + k + 1] != 0)
+                            {
+                                aVerticalPoints[x + k,y] = true;
+                                k++;
+                            }
+                            if (k > 0)
+                            {
+                                lHorizontal = new Line();
+                                lHorizontal.XStart = x;
+                                lHorizontal.YStart = y;
+                                lHorizontal.XEnd = x + k;
+                                lHorizontal.YEnd = y;
+                                lHorizontal.Vertical = false;
+                                lLines.Add(lHorizontal);
+                            }
+                            
+                        }
+                        if(!bInH && !bInV)
+                        {
+                            if(lVertical == null && lHorizontal == null)
+                            {
+                                Line lSingle = new Line();
+                                lSingle.XStart = x;
+                                lSingle.YStart = y;
+                                lSingle.Single = true;
+                                lLines.Add(lSingle);
+                            }
+                        }
+                    }
+                }
+            }
+            return lLines;
+        }
+
         public static Color ColorFromHSV(double hue, double saturation, double value)
         {
             int hi = Convert.ToInt32(Math.Floor(hue / 60)) % 6;
@@ -384,11 +463,12 @@ namespace MAPFAnimator
 
             using (Graphics g = Graphics.FromImage(MapImage))
             {
-                DrawMap(g, false);
+                DrawMap(g, true);
                 DrawObstacles(g);
+                DrawPlan(g, Plans[0], 0);
             }
             CurrentPlan = Plans[0];
-            CurrentPlanStep = 0;
+            CurrentPlanStep = 1;
             StepTimer = new System.Windows.Forms.Timer();
 
             StepTimer.Interval = 30;
@@ -399,15 +479,21 @@ namespace MAPFAnimator
             StepTimer.Start();
         }
 
+        int c = 0;
         private void DrawPlan(Graphics g, List<List<Point>> lPlan, int iStart)
         {
+            c++;
+            //if (c == 4)
+             //   Console.Write("*");
+            Debug.WriteLine("DrawPlan: " + Step + " , " + iStart);
 
-            for (int i = iStart; i < lPlan.Count; i++)
+            for (int i = 0; i < lPlan.Count; i++)
             {
                 Color c = AgentColors[i];
                 Brush b = new SolidBrush(c);
-                foreach (Point p in lPlan[i])
+                for(int j = iStart; j < lPlan[i].Count; j++)
                 {
+                    Point p = lPlan[i][j];
                     DrawAt(g, p.X, p.Y, b, 3);
                 }
             }
@@ -436,6 +522,7 @@ namespace MAPFAnimator
 
             double dTimePortion = (dtNow - LastStep).TotalMilliseconds / interval;
 
+
             using (Graphics g = Graphics.FromImage(MapImage))
             {
                 if (dTimePortion >= 1)
@@ -462,8 +549,9 @@ namespace MAPFAnimator
                 List<List<Point>> lPlan = Plans[NextObservation + 1];
                 if (lPlan != null)
                 {
+                    Debug.WriteLine("Switch plan");
                     CurrentPlan = lPlan;
-                    CurrentPlanStep = 0;
+                    CurrentPlanStep = 2;
                 }
                 Point p = Observations[NextObservation].Item2;
                 if (Observations[NextObservation].Item3)
@@ -478,9 +566,9 @@ namespace MAPFAnimator
                     StepTimer.Stop();
                     btnStart.Text = "Continue";
                 }
-                DrawMap(g, false);
-                DrawPlan(g, CurrentPlan, CurrentPlanStep);
             }
+            DrawMap(g, false);
+            DrawPlan(g, CurrentPlan, CurrentPlanStep);
 
             DrawObstacles(g);
 
@@ -543,8 +631,8 @@ namespace MAPFAnimator
                 double dY = pPrevious.Y + (pNext.Y - pPrevious.Y) * dTimePortion;
                 PointF p = new PointF((float)dX, (float)dY);
 
-                //if (i == 0)
-                //    Debug.WriteLine(p + ", " + dTimePortion);
+                if (i == 2)
+                    Debug.WriteLine(p + ", " + dTimePortion + " , " + Step);
 
                 Color c = AgentColors[i];
                 Brush b = new SolidBrush(c);

@@ -393,6 +393,8 @@ namespace MAPFAnimator
             
         }
 
+        
+
         private void DrawAt(Graphics g, float row, float col, Brush b, int iType)
         {
             int x = (int)(col * CellWidth);
@@ -491,7 +493,39 @@ namespace MAPFAnimator
             {
                 Color c = AgentColors[i];
                 Brush b = new SolidBrush(c);
-                for(int j = iStart; j < lPlan[i].Count; j++)
+                for(int j = iStart; j < lPlan[i].Count - 1; j++)
+                {
+                    Point p1 = lPlan[i][j];
+                    Point p2 = lPlan[i][j + 1];
+                    DrawLine(g, p1, p2, i);
+                }
+            }
+
+        }
+
+        private void DrawLine(Graphics g, Point p1, Point p2, int iAgent)
+        {
+            int iOffset = iAgent - (AgentColors.Count / 2) * 3;
+            int y1 = (int)(p1.X * CellWidth) + CellWidth / 2 + iOffset;
+            int x1 = (int)(p1.Y * CellHeight) + CellHeight / 2 + iOffset;
+            int y2 = (int)(p2.X * CellWidth) + CellWidth / 2 + iOffset;
+            int x2 = (int)(p2.Y * CellHeight) + CellHeight / 2 + iOffset;
+            Pen p = new Pen(AgentColors[iAgent], 3);
+            g.DrawLine(p, x1, y1, x2, y2);
+        }
+
+        private void DrawPlan2(Graphics g, List<List<Point>> lPlan, int iStart)
+        {
+            c++;
+            //if (c == 4)
+            //   Console.Write("*");
+            //Debug.WriteLine("DrawPlan: " + Step + " , " + iStart);
+
+            for (int i = 0; i < lPlan.Count; i++)
+            {
+                Color c = AgentColors[i];
+                Brush b = new SolidBrush(c);
+                for (int j = iStart; j < lPlan[i].Count; j++)
                 {
                     Point p = lPlan[i][j];
                     DrawAt(g, p.X, p.Y, b, 3);

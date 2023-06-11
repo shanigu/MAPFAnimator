@@ -37,6 +37,7 @@
             label1 = new Label();
             label2 = new Label();
             lblStep = new Label();
+            lstAgents = new ListView();
             ((System.ComponentModel.ISupportInitialize)picMap).BeginInit();
             ((System.ComponentModel.ISupportInitialize)tbSpeed).BeginInit();
             SuspendLayout();
@@ -125,11 +126,23 @@
             lblStep.TabIndex = 8;
             lblStep.Text = "Step";
             // 
+            // lstAgents
+            // 
+            lstAgents.CheckBoxes = true;
+            lstAgents.Location = new Point(818, 48);
+            lstAgents.Name = "lstAgents";
+            lstAgents.Size = new Size(160, 800);
+            lstAgents.TabIndex = 9;
+            lstAgents.UseCompatibleStateImageBehavior = false;
+            lstAgents.ItemCheck += lstAgents_ItemCheck;
+            lstAgents.Click += lstAgents_Click;
+            // 
             // MAPFAnimator
             // 
             AutoScaleDimensions = new SizeF(10F, 25F);
             AutoScaleMode = AutoScaleMode.Font;
-            ClientSize = new Size(820, 919);
+            ClientSize = new Size(980, 919);
+            Controls.Add(lstAgents);
             Controls.Add(lblStep);
             Controls.Add(label2);
             Controls.Add(label1);
@@ -159,5 +172,6 @@
         private Label label1;
         private Label label2;
         private Label lblStep;
+        private ListView lstAgents;
     }
 }

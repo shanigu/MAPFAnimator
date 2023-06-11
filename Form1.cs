@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using System.Linq.Expressions;
+using System.Runtime;
 
 namespace MAPFAnimator
 {
@@ -8,6 +9,7 @@ namespace MAPFAnimator
         List<List<int>> Map;
         string MapName;
         Bitmap MapImage;
+        List<Line> MapLines;
 
         List<Color> AgentColors;
         List<Tuple<Point, Point>> StartEndLocations;
@@ -15,11 +17,13 @@ namespace MAPFAnimator
         List<List<Point>> Steps;
         List<Tuple<int, Point, bool>> Observations;
         Dictionary<Point, int> DoorStatus;
+        bool[] SelectedAgents;
 
         public MAPFAnimator()
         {
             InitializeComponent();
             DoubleBuffered = true;
+            lstAgents.Items.Clear();
         }
 
         private void btnLoad_Click(object sender, EventArgs e)
@@ -29,6 +33,13 @@ namespace MAPFAnimator
             if (res == DialogResult.OK)
             {
                 LoadMap(dlg.FileName);
+                for (int i = 0; i < AgentColors.Count; i++)
+                {
+                    ListViewItem item = new ListViewItem(i + "");
+                    item.BackColor = AgentColors[i];
+                    lstAgents.Items.Add(item);
+                    item.Checked = true;
+                }
                 btnStart.Text = "Start";
             }
         }
@@ -104,6 +115,10 @@ namespace MAPFAnimator
                         StartEndLocations.Add(new Tuple<Point, Point>(pStart, pEnd));
                     }
 
+                    SelectedAgents = new bool[StartEndLocations.Count];
+                    for (int i = 0; i < SelectedAgents.Length; i++)
+                        SelectedAgents[i] = true;
+
                     DoorStatus = new Dictionary<Point, int>();
                     while (sLine.Trim() != "#Potential Obstacles" && !sr.EndOfStream)
                         sLine = sr.ReadLine();
@@ -118,6 +133,7 @@ namespace MAPFAnimator
 
                         Point p = Parse(a[1]);
 
+                        Map[p.X][p.Y] = 2;
                         DoorStatus[p] = 0;
                     }
 
@@ -129,6 +145,8 @@ namespace MAPFAnimator
                         Color c = ColorFromHSV(dHue, 0.8, 0.8);
                         AgentColors.Add(c);
                     }
+
+                    MapLines = ComputeMapLines();
 
                     MapImage = new Bitmap(picMap.Width, picMap.Height);
                     using (Graphics g = Graphics.FromImage(MapImage))
@@ -201,6 +219,11 @@ namespace MAPFAnimator
             public int XStart, YStart, XEnd, YEnd;
             public bool Vertical;
             public bool Single;
+
+            public override string ToString()
+            {
+                return "[(" + XStart + "," + YStart + ") , (" + XEnd + "," + YEnd + ")]";
+            }
         }
 
         private List<Line> ComputeMapLines()
@@ -209,21 +232,22 @@ namespace MAPFAnimator
             bool[,] aVerticalPoints = new bool[Map[0].Count, Map.Count];
             bool[,] aHorizontalPoints = new bool[Map[0].Count, Map.Count];
 
-            for(int y = 0; y < Map.Count; y++)
+            for (int y = 0; y < Map.Count; y++)
             {
-                for(int x = 0; x < Map[0].Count; x++)
+                for (int x = 0; x < Map[0].Count; x++)
                 {
                     if (Map[y][x] != 0)
                     {
                         Line lVertical = null, lHorizontal = null;
                         bool bInV = aVerticalPoints[x, y];
                         bool bInH = aHorizontalPoints[x, y];
-                        if (!aVerticalPoints[x,y])
+                        if (!aVerticalPoints[x, y])
                         {
                             int k = 0;
-                            while(y + k < Map.Count - 1 && Map[y + k + 1][x] != 0)
+                            while (y + k < Map.Count - 1 && Map[y + k + 1][x] != 0)
                             {
                                 aVerticalPoints[x, y + k] = true;
+                                aVerticalPoints[x, y + k + 1] = true;
                                 k++;
                             }
                             if (k > 0)
@@ -236,14 +260,15 @@ namespace MAPFAnimator
                                 lVertical.Vertical = true;
                                 lLines.Add(lVertical);
                             }
-                            
+
                         }
                         if (!aHorizontalPoints[x, y])
                         {
                             int k = 0;
                             while (x + k < Map[0].Count - 1 && Map[y][x + k + 1] != 0)
                             {
-                                aVerticalPoints[x + k,y] = true;
+                                aHorizontalPoints[x + k, y] = true;
+                                aHorizontalPoints[x + k + 1, y] = true;
                                 k++;
                             }
                             if (k > 0)
@@ -256,11 +281,11 @@ namespace MAPFAnimator
                                 lHorizontal.Vertical = false;
                                 lLines.Add(lHorizontal);
                             }
-                            
+
                         }
-                        if(!bInH && !bInV)
+                        if (!bInH && !bInV)
                         {
-                            if(lVertical == null && lHorizontal == null)
+                            if (lVertical == null && lHorizontal == null)
                             {
                                 Line lSingle = new Line();
                                 lSingle.XStart = x;
@@ -351,6 +376,62 @@ namespace MAPFAnimator
                 return;
             picMap.BorderStyle = BorderStyle.FixedSingle;
 
+            g.FillRectangle(Brushes.White, 0, 0, MapImage.Width, MapImage.Height);
+
+            Rows = Map.Count;
+            Columns = Map[0].Count;
+            CellWidth = picMap.Width / Columns;
+            CellHeight = picMap.Height / Rows;
+            if (CellWidth > CellHeight)
+                CellWidth = CellHeight;
+            else
+                CellHeight = CellWidth;
+
+            Pen p = new Pen(Color.Black, 4);
+
+            foreach (Line l in MapLines)
+            {
+                int xStart = l.XStart * CellWidth + CellWidth / 2;
+                int yStart = l.YStart * CellHeight + CellHeight / 2;
+                if (!l.Single)
+                {
+                    int xEnd = l.XEnd * CellWidth + CellWidth / 2;
+                    int yEnd = l.YEnd * CellHeight + CellHeight / 2;
+                    g.DrawLine(p, xStart, yStart, xEnd, yEnd);
+                }
+                else
+                {
+                    int iSize = CellWidth / 2;
+                    g.FillRectangle(Brushes.Black, xStart - iSize / 2, yStart - iSize / 2, iSize, iSize);
+                }
+
+            }
+
+
+
+            for (int i = 0; i < AgentColors.Count; i++)
+            {
+
+                Point pStart = StartEndLocations[i].Item1;
+                Point pEnd = StartEndLocations[i].Item2;
+                Color c = AgentColors[i];
+                Brush b = new SolidBrush(c);
+                if (bDrawStartPoistions)
+                    DrawAt(g, pStart.X, pStart.Y, b, 1);
+                DrawAt(g, pEnd.X, pEnd.Y, b, 2);
+
+            }
+
+
+        }
+
+
+        private void DrawMap2(Graphics g, bool bDrawStartPoistions)
+        {
+            if (Map == null)
+                return;
+            picMap.BorderStyle = BorderStyle.FixedSingle;
+
             Rows = Map.Count;
             Columns = Map[0].Count;
             CellWidth = picMap.Width / Columns;
@@ -390,10 +471,10 @@ namespace MAPFAnimator
 
             }
 
-            
+
         }
 
-        
+
 
         private void DrawAt(Graphics g, float row, float col, Brush b, int iType)
         {
@@ -469,6 +550,7 @@ namespace MAPFAnimator
                 DrawObstacles(g);
                 DrawPlan(g, Plans[0], 0);
             }
+            PreviousPlan = null;
             CurrentPlan = Plans[0];
             CurrentPlanStep = 1;
             StepTimer = new System.Windows.Forms.Timer();
@@ -482,35 +564,40 @@ namespace MAPFAnimator
         }
 
         int c = 0;
-        private void DrawPlan(Graphics g, List<List<Point>> lPlan, int iStart)
+        private void DrawPlan(Graphics g, List<List<Point>> lPlan, int iStart, int iEmphasize = 0)
         {
             c++;
             //if (c == 4)
-             //   Console.Write("*");
+            //   Console.Write("*");
             //Debug.WriteLine("DrawPlan: " + Step + " , " + iStart);
 
             for (int i = 0; i < lPlan.Count; i++)
             {
-                Color c = AgentColors[i];
-                Brush b = new SolidBrush(c);
-                for(int j = iStart; j < lPlan[i].Count - 1; j++)
+                if (SelectedAgents[i])
                 {
-                    Point p1 = lPlan[i][j];
-                    Point p2 = lPlan[i][j + 1];
-                    DrawLine(g, p1, p2, i);
+                    for (int j = iStart; j < lPlan[i].Count - 1; j++)
+                    {
+                        Point p1 = lPlan[i][j];
+                        Point p2 = lPlan[i][j + 1];
+                        DrawLine(g, p1, p2, i, iEmphasize);
+                    }
                 }
             }
 
         }
 
-        private void DrawLine(Graphics g, Point p1, Point p2, int iAgent)
+        private void DrawLine(Graphics g, Point p1, Point p2, int iAgent, int iEmphasize = 0)
         {
             int iOffset = iAgent - (AgentColors.Count / 2) * 3;
             int y1 = (int)(p1.X * CellWidth) + CellWidth / 2 + iOffset;
             int x1 = (int)(p1.Y * CellHeight) + CellHeight / 2 + iOffset;
             int y2 = (int)(p2.X * CellWidth) + CellWidth / 2 + iOffset;
             int x2 = (int)(p2.Y * CellHeight) + CellHeight / 2 + iOffset;
-            Pen p = new Pen(AgentColors[iAgent], 3);
+            Color c = AgentColors[iAgent];
+            Pen p = new Pen(c, 3);
+            if (iEmphasize == -1)
+                p.DashStyle = System.Drawing.Drawing2D.DashStyle.Dot;
+            
             g.DrawLine(p, x1, y1, x2, y2);
         }
 
@@ -545,7 +632,7 @@ namespace MAPFAnimator
         }
 
 
-        private List<List<Point>> CurrentPlan;
+        private List<List<Point>> CurrentPlan, PreviousPlan;
         private int CurrentPlanStep;
 
         private void ShowStep(object? sender, EventArgs e)
@@ -564,19 +651,21 @@ namespace MAPFAnimator
                     AdvanceStep(g);
                     dTimePortion = 0;
                 }
-                
+
                 DrawMovement(g, dTimePortion);
             }
 
             picMap.Refresh();
         }
 
+        bool ShowPlanSwitch = false;
+        int PreviousPlanStep = -1;
 
         private void AdvanceStep(Graphics g)
         {
-
+            ShowPlanSwitch = false;
             lblStep.Text = Step + "/" + Steps.Count;
-
+            PreviousPlanStep = -1;
 
             while (NextObservation < Observations.Count && Step == Observations[NextObservation].Item1)
             {
@@ -584,8 +673,16 @@ namespace MAPFAnimator
                 if (lPlan != null)
                 {
                     //Debug.WriteLine("Switch plan");
+                    PreviousPlan = CurrentPlan;
+                    PreviousPlanStep = CurrentPlanStep;
                     CurrentPlan = lPlan;
-                    CurrentPlanStep = 2;
+                    CurrentPlanStep = 1;
+                    if (chkStop.Checked)
+                    {
+                        StepTimer.Stop();
+                        btnStart.Text = "Continue";
+                        ShowPlanSwitch = true;
+                    }
                 }
                 Point p = Observations[NextObservation].Item2;
                 if (Observations[NextObservation].Item3)
@@ -595,15 +692,18 @@ namespace MAPFAnimator
 
                 NextObservation++;
 
-                if (chkStop.Checked)
-                {
-                    StepTimer.Stop();
-                    btnStart.Text = "Continue";
-                }
+
             }
             DrawMap(g, false);
-            DrawPlan(g, CurrentPlan, CurrentPlanStep);
-
+            if (ShowPlanSwitch)
+            {
+                DrawPlan(g, PreviousPlan, PreviousPlanStep, -1);
+                DrawPlan(g, CurrentPlan, 0, 1);
+            }
+            else
+            {
+                DrawPlan(g, CurrentPlan, CurrentPlanStep);
+            }
             //DrawObstacles(g);
 
 
@@ -629,11 +729,11 @@ namespace MAPFAnimator
         private DateTime LastStep;
         List<PointF> LastPositions;
 
-        
+
 
         private void DrawMovement(Graphics g, double dTimePortion)
         {
-            if(Step == Steps.Count)
+            if (Step == Steps.Count)
             {
                 return;
             }
@@ -678,12 +778,55 @@ namespace MAPFAnimator
             }
             LastPositions = lPositions;
         }
-        
+
 
         private void picMap_Paint(object sender, PaintEventArgs e)
         {
 
+
+        }
+
+        private void lstAgents_Click(object sender, EventArgs e)
+        {
             
+        }
+
+
+
+        private void RedrawPlan()
+        {
+            if (CurrentPlan != null)
+            {
+                using (Graphics g = Graphics.FromImage(MapImage))
+                {
+                    DrawMap(g, false);
+                    if (ShowPlanSwitch)
+                    {
+                        DrawPlan(g, PreviousPlan, PreviousPlanStep, -1);
+                        DrawPlan(g, CurrentPlan, 0, 1);
+                    }
+                    else
+                    {
+                        DrawPlan(g, CurrentPlan, CurrentPlanStep);
+                    }
+
+                    DrawMovement(g, 0);
+                    picMap.Invalidate();
+                }
+            }
+        }
+
+        private void lstAgents_ItemCheck(object sender, ItemCheckEventArgs e)
+        {
+            if(e.NewValue == CheckState.Checked)
+            {
+                SelectedAgents[e.Index] = true;
+            }
+            else
+            {
+                SelectedAgents[e.Index] = false;
+            }
+            RedrawPlan();
         }
     }
 }

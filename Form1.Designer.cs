@@ -44,9 +44,9 @@
             // 
             // picMap
             // 
-            picMap.Location = new Point(12, 48);
+            picMap.Location = new Point(9, 48);
             picMap.Name = "picMap";
-            picMap.Size = new Size(800, 800);
+            picMap.Size = new Size(1282, 1336);
             picMap.TabIndex = 0;
             picMap.TabStop = false;
             picMap.Paint += picMap_Paint;
@@ -72,7 +72,7 @@
             // 
             // btnStart
             // 
-            btnStart.Location = new Point(10, 873);
+            btnStart.Location = new Point(11, 1403);
             btnStart.Name = "btnStart";
             btnStart.Size = new Size(112, 34);
             btnStart.TabIndex = 3;
@@ -83,7 +83,7 @@
             // chkStop
             // 
             chkStop.AutoSize = true;
-            chkStop.Location = new Point(653, 873);
+            chkStop.Location = new Point(654, 1403);
             chkStop.Name = "chkStop";
             chkStop.Size = new Size(155, 29);
             chkStop.TabIndex = 4;
@@ -92,7 +92,7 @@
             // 
             // tbSpeed
             // 
-            tbSpeed.Location = new Point(357, 872);
+            tbSpeed.Location = new Point(358, 1402);
             tbSpeed.Maximum = 20;
             tbSpeed.Name = "tbSpeed";
             tbSpeed.Size = new Size(191, 69);
@@ -102,7 +102,7 @@
             // label1
             // 
             label1.AutoSize = true;
-            label1.Location = new Point(299, 877);
+            label1.Location = new Point(300, 1407);
             label1.Name = "label1";
             label1.Size = new Size(65, 25);
             label1.TabIndex = 6;
@@ -111,7 +111,7 @@
             // label2
             // 
             label2.AutoSize = true;
-            label2.Location = new Point(543, 877);
+            label2.Location = new Point(544, 1407);
             label2.Name = "label2";
             label2.Size = new Size(58, 25);
             label2.TabIndex = 7;
@@ -120,7 +120,7 @@
             // lblStep
             // 
             lblStep.AutoSize = true;
-            lblStep.Location = new Point(146, 877);
+            lblStep.Location = new Point(147, 1407);
             lblStep.Name = "lblStep";
             lblStep.Size = new Size(47, 25);
             lblStep.TabIndex = 8;
@@ -129,9 +129,9 @@
             // lstAgents
             // 
             lstAgents.CheckBoxes = true;
-            lstAgents.Location = new Point(818, 48);
+            lstAgents.Location = new Point(1306, 48);
             lstAgents.Name = "lstAgents";
-            lstAgents.Size = new Size(160, 800);
+            lstAgents.Size = new Size(160, 1384);
             lstAgents.TabIndex = 9;
             lstAgents.UseCompatibleStateImageBehavior = false;
             lstAgents.ItemCheck += lstAgents_ItemCheck;
@@ -141,7 +141,7 @@
             // 
             AutoScaleDimensions = new SizeF(10F, 25F);
             AutoScaleMode = AutoScaleMode.Font;
-            ClientSize = new Size(980, 919);
+            ClientSize = new Size(1478, 1444);
             Controls.Add(lstAgents);
             Controls.Add(lblStep);
             Controls.Add(label2);

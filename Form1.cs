@@ -44,9 +44,17 @@ namespace MAPFAnimator
             }
         }
 
+
+        private string ReadLine(StreamReader sr, List<string> lLines)
+        {
+            string sLine = sr.ReadLine();
+            lLines.Add(sLine);
+            return sLine.Trim();
+        }
         private void LoadMap(string fileName)
         {
             string sLine = "";
+            List<string> lLines = new List<string>();
             try
             {
 
@@ -56,7 +64,7 @@ namespace MAPFAnimator
                     Map = new List<List<int>>(); ;
                     while (sLine == "" && !sr.EndOfStream)
                     {
-                        sLine = sr.ReadLine();
+                        sLine = ReadLine(sr, lLines);
                     }
                     MapName = sLine.Trim();
                     lblMapName.Text = MapName;
@@ -65,7 +73,7 @@ namespace MAPFAnimator
                     sLine = "";
                     while (sLine == "" && !sr.EndOfStream)
                     {
-                        sLine = sr.ReadLine();
+                        sLine = ReadLine(sr, lLines);
                     }
                     int row = 0;
                     while (sLine != "Agents" && sLine != "" && !sr.EndOfStream)
@@ -91,15 +99,15 @@ namespace MAPFAnimator
                         }
                         Map.Add(lRow);
                         row++;
-                        sLine = sr.ReadLine();
+                        sLine = ReadLine(sr, lLines);
                     }
 
                     StartEndLocations = new List<Tuple<Point, Point>>();
                     while (sLine.Trim() != "#Agents" && !sr.EndOfStream)
-                        sLine = sr.ReadLine();
+                        sLine = ReadLine(sr, lLines);
                     while (!sr.EndOfStream)
                     {
-                        sLine = sr.ReadLine().Trim();
+                        sLine = ReadLine(sr, lLines);
                         if (sLine == "" || sLine.StartsWith("#"))
                             break;
 
@@ -121,7 +129,7 @@ namespace MAPFAnimator
 
                     DoorStatus = new Dictionary<Point, int>();
                     while (sLine.Trim() != "#Potential Obstacles" && !sr.EndOfStream)
-                        sLine = sr.ReadLine();
+                        sLine = ReadLine(sr, lLines);
                     while (!sr.EndOfStream)
                     {
                         sLine = sr.ReadLine().Trim();
@@ -144,6 +152,10 @@ namespace MAPFAnimator
                     {
                         Color c = ColorFromHSV(dHue, 0.8, 0.8);
                         AgentColors.Add(c);
+                        if(AgentColors.Count == StartEndLocations.Count)
+                        {
+                            break;
+                        }
                     }
 
                     MapLines = ComputeMapLines();
@@ -159,7 +171,7 @@ namespace MAPFAnimator
 
                     while (sLine.Trim() != "#Plan" && !sr.EndOfStream)
                     {
-                        sLine = sr.ReadLine();
+                        sLine = ReadLine(sr, lLines);
                     }
 
                     Plans = new List<List<List<Point>>>();
@@ -169,7 +181,7 @@ namespace MAPFAnimator
                     Observations = new List<Tuple<int, Point, bool>>();
                     while (sLine.Trim() != "#Steps" && !sr.EndOfStream)
                     {
-                        sLine = sr.ReadLine();
+                        sLine = ReadLine(sr, lLines);
                     }
 
                     int cSteps = 0;
@@ -588,16 +600,26 @@ namespace MAPFAnimator
 
         private void DrawLine(Graphics g, Point p1, Point p2, int iAgent, int iEmphasize = 0)
         {
-            int iOffset = iAgent - (AgentColors.Count / 2) * 3;
+            int iWidth = CellHeight / AgentColors.Count;
+            if (iWidth < 1)
+                iWidth = 1;
+            if (iWidth > 3)
+                iWidth = 3;
+
+            int iOffset = (iAgent - (AgentColors.Count / 2) * iWidth) * 2;
+            if (iOffset > CellHeight)
+                iOffset = CellHeight;
+            if (iOffset < -CellHeight)
+                iOffset = -CellHeight;
             int y1 = (int)(p1.X * CellWidth) + CellWidth / 2 + iOffset;
             int x1 = (int)(p1.Y * CellHeight) + CellHeight / 2 + iOffset;
             int y2 = (int)(p2.X * CellWidth) + CellWidth / 2 + iOffset;
             int x2 = (int)(p2.Y * CellHeight) + CellHeight / 2 + iOffset;
             Color c = AgentColors[iAgent];
-            Pen p = new Pen(c, 3);
+            Pen p = new Pen(c, iWidth);
             if (iEmphasize == -1)
                 p.DashStyle = System.Drawing.Drawing2D.DashStyle.Dot;
-            
+
             g.DrawLine(p, x1, y1, x2, y2);
         }
 
@@ -788,7 +810,7 @@ namespace MAPFAnimator
 
         private void lstAgents_Click(object sender, EventArgs e)
         {
-            
+
         }
 
 
@@ -818,7 +840,7 @@ namespace MAPFAnimator
 
         private void lstAgents_ItemCheck(object sender, ItemCheckEventArgs e)
         {
-            if(e.NewValue == CheckState.Checked)
+            if (e.NewValue == CheckState.Checked)
             {
                 SelectedAgents[e.Index] = true;
             }

@@ -32,6 +32,8 @@ namespace MAPFAnimator
             DialogResult res = dlg.ShowDialog();
             if (res == DialogResult.OK)
             {
+
+
                 LoadMap(dlg.FileName);
                 for (int i = 0; i < AgentColors.Count; i++)
                 {
@@ -42,6 +44,7 @@ namespace MAPFAnimator
                 }
                 btnStart.Text = "Start";
             }
+
         }
 
 
@@ -51,6 +54,8 @@ namespace MAPFAnimator
             lLines.Add(sLine);
             return sLine.Trim();
         }
+
+
         private void LoadMap(string fileName)
         {
             string sLine = "";
@@ -152,7 +157,7 @@ namespace MAPFAnimator
                     {
                         Color c = ColorFromHSV(dHue, 0.8, 0.8);
                         AgentColors.Add(c);
-                        if(AgentColors.Count == StartEndLocations.Count)
+                        if (AgentColors.Count == StartEndLocations.Count)
                         {
                             break;
                         }
@@ -225,6 +230,7 @@ namespace MAPFAnimator
             }
 
         }
+
 
         class Line
         {
